@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s http://localhost:8000/health)",
+      "Bash(cd /tmp)",
+      "Bash(curl -s -X POST http://localhost:8000/analyze -F \"file=@test_facture_cma.pdf\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('carrier:', d['carrier']\\); print\\('score:', d['score']\\); print\\('anomalies:', d['anomalies_count']\\); print\\('lines:', len\\(d['lines']\\)\\)\")",
+      "Bash(python -m uvicorn main:app --host 0.0.0.0 --port 8001)",
+      "Bash(curl -s -X POST http://localhost:8000/report -H \"Content-Type: application/json\" -d '{\"score\":34,\"carrier\":\"CMA CGM\",\"route\":\"Shanghai → Le Havre\",\"period\":\"Q1 2026\",\"anomalies_count\":2,\"recoverable\":\"185 USD\",\"lines\":[{\"code\":\"Ocean Freight\",\"desc\":\"Fret de base\",\"amount\":\"1850 USD\",\"status\":\"ok\",\"verdict\":\"Conforme\"}],\"summary\":\"Test OK\",\"summary_type\":\"err\"}' -o /tmp/test_rapport.pdf)",
+      "Bash(curl *)",
+      "Bash(python generate_test_invoices.py)",
+      "Bash(ls -lh *.pdf)",
+      "Bash(dir *.pdf)",
+      "Bash(pip install *)",
+      "Bash(python -c \"import anthropic; import pypdf; print\\('OK'\\)\")",
+      "Bash(python -m uvicorn main:app --host 0.0.0.0 --port 8002)",
+      "Bash(python3 -c \"import sys,json; print\\(json.load\\(sys.stdin\\)['email']\\)\")",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 *)",
+      "Bash(python -m uvicorn main:app --host 0.0.0.0 --port 8002 --reload)",
+      "Bash(python -m uvicorn main:app --host 0.0.0.0 --port 8003 --reload)",
+      "Bash(git init *)",
+      "Bash(git add *)"
+    ]
+  }
+}

@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClearFreight — Analysez vos factures de fret maritime</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Sora:wght@400;600;700&display=swap');
+
+  :root {
+    --navy: #0A1628;
+    --navy-mid: #122040;
+    --blue: #1A56DB;
+    --blue-light: #EFF6FF;
+    --accent: #00C896;
+    --accent-dim: #E6FAF5;
+    --warn: #F59E0B;
+    --warn-dim: #FFFBEB;
+    --danger: #EF4444;
+    --danger-dim: #FEF2F2;
+    --success: #10B981;
+    --success-dim: #ECFDF5;
+    --gray-50: #F9FAFB;
+    --gray-100: #F3F4F6;
+    --gray-200: #E5E7EB;
+    --gray-400: #9CA3AF;
+    --gray-600: #4B5563;
+    --gray-800: #1F2937;
+    --white: #FFFFFF;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--gray-50);
+    color: var(--gray-800);
+    min-height: 100vh;
+  }
+
+  /* NAV */
+  nav {
+    background: var(--navy);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    font-family: 'Sora', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--white);
+    letter-spacing: -.3px;
+  }
+  .logo span { color: var(--accent); }
+  .nav-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+  }
+  .nav-links a {
+    color: rgba(255,255,255,.65);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color .15s;
+  }
+  .nav-links a:hover { color: var(--white); }
+  .nav-cta {
+    background: var(--accent);
+    color: var(--navy) !important;
+    font-weight: 600 !important;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 14px !important;
+  }
+
+  /* HERO */
+  .hero {
+    background: var(--navy);
+    padding: 5rem 2rem 4rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(0,200,150,.12) 0%, transparent 70%);
+    top: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0,200,150,.15);
+    border: 1px solid rgba(0,200,150,.3);
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 16px;
+    border-radius: 99px;
+    margin-bottom: 1.75rem;
+  }
+  .hero-badge::before { content: '●'; font-size: 8px; }
+  .hero h1 {
+    font-family: 'Sora', sans-serif;
+    font-size: clamp(28px, 4vw, 46px);
+    font-weight: 700;
+    color: var(--white);
+    line-height: 1.2;
+    max-width: 680px;
+    margin: 0 auto 1.25rem;
+    letter-spacing: -.5px;
+  }
+  .hero h1 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+  .hero p {
+    font-size: 17px;
+    color: rgba(255,255,255,.65);
+    max-width: 520px;
+    margin: 0 auto 2.5rem;
+    line-height: 1.7;
+  }
+  .hero-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--accent);
+    color: var(--navy);
+    font-family: 'Sora', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    padding: 14px 32px;
+    border-radius: 10px;
+    text-decoration: none;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .hero-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,200,150,.3); }
+  .hero-btn svg { width: 18px; height: 18px; }
+
+  /* STATS BAND */
+  .stats-band {
+    background: var(--navy-mid);
+    border-top: 1px solid rgba(255,255,255,.06);
+    padding: 1.5rem 2rem;
+    display: flex;
+    justify-content: center;
+    gap: 4rem;
+    flex-wrap: wrap;
+  }
+  .stat-item { text-align: center; }
+  .stat-item .n {
+    font-family: 'Sora', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--white);
+  }
+  .stat-item .n span { color: var(--accent); }
+  .stat-item .l {
+    font-size: 12px;
+    color: rgba(255,255,255,.45);
+    margin-top: 2px;
+    max-width: 140px;
+  }
+
+  /* SECTION */
+  section { padding: 4rem 2rem; }
+  .container { max-width: 900px; margin: 0 auto; }
+  .section-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--blue);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: .75rem;
+  }
+  .section-title {
+    font-family: 'Sora', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 1rem;
+    letter-spacing: -.3px;
+  }
+  .section-sub {
+    font-size: 16px;
+    color: var(--gray-600);
+    max-width: 560px;
+    line-height: 1.7;
+    margin-bottom: 2.5rem;
+  }
+
+  /* PAIN CARDS */
+  .pain-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+    margin-bottom: 3rem;
+  }
+  .pain-card {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+  .pain-card .icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    margin-bottom: 1rem;
+  }
+  .pain-card h3 {
+    font-family: 'Sora', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: .5rem;
+  }
+  .pain-card p { font-size: 14px; color: var(--gray-600); line-height: 1.6; }
+
+  /* HOW IT WORKS */
+  .steps-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    position: relative;
+    margin-bottom: 3rem;
+  }
+  .steps-row::before {
+    content: '';
+    position: absolute;
+    top: 28px;
+    left: calc(16.66% + 16px);
+    right: calc(16.66% + 16px);
+    height: 1px;
+    background: var(--gray-200);
+    z-index: 0;
+  }
+  .step-item { text-align: center; padding: 0 1rem; position: relative; }
+  .step-num {
+    width: 48px;
+    height: 48px;
+    background: var(--navy);
+    color: var(--white);
+    font-family: 'Sora', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    position: relative;
+    z-index: 1;
+  }
+  .step-item h3 {
+    font-family: 'Sora', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: .5rem;
+  }
+  .step-item p { font-size: 13px; color: var(--gray-600); line-height: 1.6; }
+
+  /* TOOL SECTION */
+  #outil { background: var(--white); border-top: 1px solid var(--gray-200); border-bottom: 1px solid var(--gray-200); }
+
+  .tool-wrapper {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    align-items: start;
+  }
+
+  .upload-card {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .upload-card-head {
+    background: var(--navy);
+    padding: 1.25rem 1.5rem;
+  }
+  .upload-card-head h3 {
+    font-family: 'Sora', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--white);
+    margin-bottom: 2px;
+  }
+  .upload-card-head p { font-size: 13px; color: rgba(255,255,255,.55); }
+
+  .upload-zone {
+    margin: 1.5rem;
+    border: 2px dashed var(--gray-200);
+    border-radius: 12px;
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+    background: var(--white);
+  }
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--blue);
+    background: var(--blue-light);
+  }
+  .upload-icon {
+    width: 52px;
+    height: 52px;
+    background: var(--blue-light);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+  }
+  .upload-icon svg { width: 26px; height: 26px; color: var(--blue); }
+  .upload-zone h4 { font-size: 15px; font-weight: 600; color: var(--navy); margin-bottom: 4px; }
+  .upload-zone p { font-size: 13px; color: var(--gray-400); }
+  .upload-zone .file-name { font-size: 14px; font-weight: 500; color: var(--blue); margin-top: 8px; display: none; }
+
+  input[type=file] { display: none; }
+
+  .btn-analyze {
+    display: block;
+    width: calc(100% - 3rem);
+    margin: 0 1.5rem 1.5rem;
+    background: var(--blue);
+    color: var(--white);
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    font-family: 'Sora', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s, transform .1s;
+  }
+  .btn-analyze:hover { background: #1648c8; transform: translateY(-1px); }
+  .btn-analyze:disabled { background: var(--gray-200); color: var(--gray-400); cursor: default; transform: none; }
+
+  /* LOADING */
+  .loading-state {
+    display: none;
+    margin: 0 1.5rem 1.5rem;
+    text-align: center;
+    padding: 1.5rem;
+  }
+  .progress-bar-wrap { background: var(--gray-200); height: 4px; border-radius: 99px; overflow: hidden; margin-bottom: 12px; }
+  .progress-bar-fill { height: 100%; background: var(--blue); border-radius: 99px; width: 0%; transition: width .3s ease; }
+  .loading-state p { font-size: 13px; color: var(--gray-600); }
+
+  /* RESULT PANEL */
+  .result-panel {
+    display: none;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .result-header {
+    background: var(--navy);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .result-header h3 { font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 600; color: var(--white); }
+  .result-header p { font-size: 12px; color: rgba(255,255,255,.5); margin-top: 2px; }
+  .score-badge {
+    font-family: 'Sora', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    padding: 8px 18px;
+    border-radius: 10px;
+    text-align: center;
+    min-width: 80px;
+  }
+  .score-low { background: var(--success-dim); color: var(--success); }
+  .score-mid { background: var(--warn-dim); color: var(--warn); }
+  .score-high { background: var(--danger-dim); color: var(--danger); }
+
+  /* GAUGE */
+  .gauge-card {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+  }
+  .gauge-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 10px; }
+  .gauge-label span:first-child { color: var(--gray-600); }
+  .gauge-label .pct { font-family: 'Sora', sans-serif; font-weight: 700; font-size: 18px; }
+  .gauge-track { height: 10px; background: var(--gray-100); border-radius: 99px; overflow: hidden; }
+  .gauge-fill { height: 100%; border-radius: 99px; transition: width 1.2s cubic-bezier(.2,.8,.2,1); }
+
+  /* LINES */
+  .lines-card {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .lines-head {
+    padding: .875rem 1.25rem;
+    border-bottom: 1px solid var(--gray-100);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--navy);
+    display: flex;
+    justify-content: space-between;
+  }
+  .lines-head span { color: var(--gray-400); font-weight: 400; }
+  .line-row {
+    display: flex;
+    align-items: center;
+    padding: .875rem 1.25rem;
+    border-bottom: 1px solid var(--gray-100);
+    gap: 12px;
+  }
+  .line-row:last-child { border-bottom: none; }
+  .line-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-ok { background: var(--success); }
+  .dot-warn { background: var(--warn); }
+  .dot-err { background: var(--danger); }
+  .line-info { flex: 1; min-width: 0; }
+  .line-code { font-size: 13px; font-weight: 600; color: var(--navy); }
+  .line-desc { font-size: 12px; color: var(--gray-400); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .line-right { text-align: right; flex-shrink: 0; }
+  .line-amount { font-size: 13px; font-weight: 600; color: var(--navy); }
+  .line-verdict { font-size: 11px; margin-top: 1px; font-weight: 500; }
+  .v-ok { color: var(--success); }
+  .v-warn { color: var(--warn); }
+  .v-err { color: var(--danger); }
+
+  /* SUMMARY */
+  .summary-card {
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .summary-card strong { font-weight: 600; }
+  .sum-err { background: var(--danger-dim); color: #991B1B; border: 1px solid #FCA5A5; }
+  .sum-ok { background: var(--success-dim); color: #065F46; border: 1px solid #6EE7B7; }
+
+  .action-btn {
+    width: 100%;
+    background: var(--accent);
+    color: var(--navy);
+    border: none;
+    border-radius: 10px;
+    padding: 13px;
+    font-family: 'Sora', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform .1s;
+  }
+  .action-btn:hover { transform: translateY(-1px); }
+
+  .demo-note {
+    font-size: 11px;
+    color: var(--gray-400);
+    text-align: center;
+    padding-bottom: .5rem;
+    display: none;
+  }
+
+  /* FOOTER */
+  footer {
+    background: var(--navy);
+    padding: 2rem;
+    text-align: center;
+    font-size: 13px;
+    color: rgba(255,255,255,.35);
+  }
+  footer strong { color: rgba(255,255,255,.7); font-weight: 500; }
+
+  @media (max-width: 720px) {
+    .tool-wrapper { grid-template-columns: 1fr; }
+    .steps-row { grid-template-columns: 1fr; gap: 1.5rem; }
+    .steps-row::before { display: none; }
+    .stats-band { gap: 2rem; }
+    nav .nav-links { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">Clear<span>Freight</span></div>
+  <ul class="nav-links">
+    <li><a href="#probleme">Le problème</a></li>
+    <li><a href="#comment">Comment ça marche</a></li>
+    <li><a href="#outil">Analyser une facture</a></li>
+    <li><a href="#outil" class="nav-cta">Essayer gratuitement</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">Outil gratuit pour les PME importatrices</div>
+  <h1>Vos factures de fret maritime,<br><em>enfin lisibles</em></h1>
+  <p>Uploadez une facture. En 30 secondes, on vous dit ce que vous payez vraiment — et si vous êtes surfacturés.</p>
+  <a href="#outil" class="hero-btn">
+    Analyser ma facture
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+  </a>
+</div>
+
+<!-- STATS -->
+<div class="stats-band">
+  <div class="stat-item">
+    <div class="n"><span>30%</span></div>
+    <div class="l">des factures contiennent des erreurs (FMC, 2024)</div>
+  </div>
+  <div class="stat-item">
+    <div class="n"><span>15 Md$</span></div>
+    <div class="l">de surestaries facturées aux chargeurs depuis 2020</div>
+  </div>
+  <div class="stat-item">
+    <div class="n"><span>12</span> lignes</div>
+    <div class="l">de surcharges illisibles en moyenne par facture</div>
+  </div>
+  <div class="stat-item">
+    <div class="n"><span>185 USD</span></div>
+    <div class="l">récupérables en moyenne par facture analysée</div>
+  </div>
+</div>
+
+<!-- PROBLEME -->
+<section id="probleme">
+  <div class="container">
+    <div class="section-label">Le problème</div>
+    <h2 class="section-title">Ce que personne ne vous explique</h2>
+    <p class="section-sub">Chaque facture de fret maritime cache des surcharges incompréhensibles que 9 PME sur 10 paient sans vérifier.</p>
+    <div class="pain-grid">
+      <div class="pain-card">
+        <div class="icon" style="background:#FEF2F2;">📄</div>
+        <h3>Des factures illisibles</h3>
+        <p>BAF, ETS, PSS, CAF, THC… Les transporteurs utilisent des codes différents pour les mêmes surcharges. Impossible à comprendre sans expertise.</p>
+      </div>
+      <div class="pain-card">
+        <div class="icon" style="background:#FFFBEB;">⚠️</div>
+        <h3>Aucun moyen de vérifier</h3>
+        <p>Même si vous vouliez contester, vous n'avez aucune référence. 30% des factures contiennent des erreurs que personne ne détecte.</p>
+      </div>
+      <div class="pain-card">
+        <div class="icon" style="background:#ECFDF5;">⏱</div>
+        <h3>Les surestaries tombent trop tard</h3>
+        <p>Les pénalités de retard (75–300$/jour) s'accumulent au port sans que personne ne vous prévienne. Vous le découvrez sur la facture.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="comment" style="background: var(--gray-50); border-top: 1px solid var(--gray-200); border-bottom: 1px solid var(--gray-200);">
+  <div class="container">
+    <div class="section-label">Comment ça marche</div>
+    <h2 class="section-title">30 secondes pour tout comprendre</h2>
+    <p class="section-sub">Pas d'inscription, pas d'installation. Vous uploadez, on analyse.</p>
+    <div class="steps-row">
+      <div class="step-item">
+        <div class="step-num">1</div>
+        <h3>Uploadez votre facture</h3>
+        <p>Déposez le PDF reçu de votre transporteur ou transitaire</p>
+      </div>
+      <div class="step-item">
+        <div class="step-num">2</div>
+        <h3>Analyse automatique</h3>
+        <p>Notre IA décompose chaque surcharge et la compare aux références du marché</p>
+      </div>
+      <div class="step-item">
+        <div class="step-num">3</div>
+        <h3>Rapport clair</h3>
+        <p>Score de surfacturation, anomalies détectées et montant récupérable estimé</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TOOL -->
+<section id="outil">
+  <div class="container">
+    <div class="section-label">L'outil</div>
+    <h2 class="section-title">Analysez votre facture maintenant</h2>
+    <p class="section-sub">Démo gratuite — résultat immédiat. Vos données ne sont pas conservées.</p>
+
+    <div class="tool-wrapper">
+      <!-- LEFT: UPLOAD -->
+      <div>
+        <div class="upload-card">
+          <div class="upload-card-head">
+            <h3>Importer une facture</h3>
+            <p>Format PDF · Confidentiel · Gratuit</p>
+          </div>
+
+          <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+            <div class="upload-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/>
+              </svg>
+            </div>
+            <h4 id="uploadTitle">Glissez votre facture ici</h4>
+            <p>ou cliquez pour importer un PDF</p>
+            <div class="file-name" id="fileName"></div>
+          </div>
+          <input type="file" id="fileInput" accept=".pdf">
+
+          <button class="btn-analyze" id="analyzeBtn" disabled onclick="runAnalysis()">
+            Analyser la facture
+          </button>
+
+          <div class="loading-state" id="loadingState">
+            <div class="progress-bar-wrap">
+              <div class="progress-bar-fill" id="progressFill"></div>
+            </div>
+            <p id="loadingText">Extraction des données…</p>
+          </div>
+
+          <div id="emailGate" style="display:none; padding:0 1.5rem 1.5rem;">
+            <div style="background:var(--accent-dim);border:1px solid rgba(0,200,150,.3);border-radius:12px;padding:1.5rem;text-align:center;">
+              <div style="width:44px;height:44px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;margin:0 auto .875rem;font-size:22px;color:var(--navy);font-weight:700;">✓</div>
+              <h4 style="font-family:'Sora',sans-serif;font-size:15px;font-weight:600;color:var(--navy);margin-bottom:.375rem;">Rapport prêt</h4>
+              <p style="font-size:13px;color:var(--gray-600);margin-bottom:1.25rem;line-height:1.6;">Entrez votre email pour consulter l'analyse complète.</p>
+              <input type="email" id="emailInput" placeholder="vous@entreprise.fr"
+                style="width:100%;padding:10px 14px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:14px;margin-bottom:10px;outline:none;font-family:'Inter',sans-serif;box-sizing:border-box;"
+                onkeydown="if(event.key==='Enter') submitEmail()">
+              <p id="emailError" style="display:none;font-size:12px;color:var(--danger);margin-bottom:8px;text-align:left;"></p>
+              <button onclick="submitEmail()"
+                style="width:100%;background:var(--accent);color:var(--navy);border:none;border-radius:8px;padding:11px;font-family:'Sora',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:transform .1s;"
+                onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='none'">
+                Voir mon rapport →
+              </button>
+            </div>
+          </div>
+
+          <p class="demo-note" id="demoNote"></p>
+        </div>
+      </div>
+
+      <!-- RIGHT: RESULT -->
+      <div class="result-panel" id="resultPanel">
+        <div class="result-header">
+          <div>
+            <h3>Rapport d'analyse</h3>
+            <p id="resultSubtitle"></p>
+          </div>
+          <div class="score-badge" id="scoreBadge"></div>
+        </div>
+
+        <div class="gauge-card">
+          <div class="gauge-label">
+            <span>Niveau de surfacturation estimé</span>
+            <span class="pct" id="gaugePct">0%</span>
+          </div>
+          <div class="gauge-track">
+            <div class="gauge-fill" id="gaugeFill" style="width:0%"></div>
+          </div>
+        </div>
+
+        <div class="lines-card">
+          <div class="lines-head">
+            Détail ligne par ligne
+            <span id="linesCount"></span>
+          </div>
+          <div id="linesList"></div>
+        </div>
+
+        <div class="summary-card" id="summaryCard"></div>
+
+        <button class="action-btn" id="reportBtn" onclick="downloadReport()">
+          Télécharger le rapport PDF
+        </button>
+
+        <button class="action-btn" id="contestationBtn" onclick="toggleContestation()"
+          style="background:var(--white);color:var(--navy);border:1.5px solid var(--gray-200);margin-top:8px;">
+          Email de contestation
+        </button>
+
+        <div id="contestationPanel" style="display:none;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:12px;padding:1.25rem;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.875rem;">
+            <span style="font-family:'Sora',sans-serif;font-size:13px;font-weight:600;color:var(--navy);">Email de contestation</span>
+            <button id="copyBtn" onclick="copyEmail()"
+              style="font-size:12px;color:var(--blue);background:none;border:none;cursor:pointer;font-weight:500;padding:4px 8px;border-radius:6px;">
+              Copier
+            </button>
+          </div>
+          <pre id="contestationText"
+            style="font-size:11.5px;color:var(--gray-600);white-space:pre-wrap;font-family:'Inter',sans-serif;line-height:1.75;margin:0;"></pre>
+        </div>
+      </div>
+
+      <!-- Placeholder quand pas encore de résultat -->
+      <div id="emptyState" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; min-height:320px; background:var(--gray-50); border:1px dashed var(--gray-200); border-radius:16px; text-align:center; padding:2rem;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H7A5 5 0 017 7h1"/><path d="M15 7h1a5 5 0 010 10h-1"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        <p style="font-size:14px; color:var(--gray-400); max-width:220px; line-height:1.6;">Importez une facture à gauche pour voir l'analyse apparaître ici</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <strong>ClearFreight</strong> — Prototype MVP · 2026<br>
+  Données simulées à des fins de démonstration. Aucune donnée n'est conservée sur nos serveurs.
+</footer>
+
+<script>
+const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:8002' : '';
+
+const fileInput  = document.getElementById('fileInput');
+const analyzeBtn = document.getElementById('analyzeBtn');
+const uploadZone = document.getElementById('uploadZone');
+let selectedFile  = null;
+let currentResult = null;
+
+fileInput.addEventListener('change', () => {
+  if (fileInput.files.length > 0) {
+    selectedFile = fileInput.files[0];
+    onFileSelected(selectedFile.name);
+  }
+});
+
+uploadZone.addEventListener('dragover', e => {
+  e.preventDefault();
+  uploadZone.classList.add('drag-over');
+});
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f) { selectedFile = f; onFileSelected(f.name); }
+});
+
+function onFileSelected(name) {
+  document.getElementById('uploadTitle').textContent = 'Fichier prêt';
+  document.getElementById('fileName').textContent = name;
+  document.getElementById('fileName').style.display = 'block';
+  analyzeBtn.disabled = false;
+  uploadZone.style.borderColor = 'var(--blue)';
+  uploadZone.style.background = 'var(--blue-light)';
+}
+
+async function runAnalysis() {
+  analyzeBtn.style.display = 'none';
+  document.getElementById('loadingState').style.display = 'block';
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('emailGate').style.display = 'none';
+
+  const steps = [
+    [0,   'Extraction du texte PDF…'],
+    [30,  'Identification du transporteur…'],
+    [55,  'Analyse des surcharges…'],
+    [75,  'Comparaison aux références marché…'],
+    [90,  'Calcul des anomalies…'],
+    [100, 'Rapport prêt !'],
+  ];
+
+  const fill = document.getElementById('progressFill');
+  const txt  = document.getElementById('loadingText');
+  let i = 0;
+  const animateStep = () => new Promise(resolve => {
+    if (i >= steps.length) return resolve();
+    fill.style.width = steps[i][0] + '%';
+    txt.textContent  = steps[i][1];
+    i++;
+    setTimeout(() => animateStep().then(resolve), 420);
+  });
+
+  const [data] = await Promise.all([callAPI(), animateStep()]);
+  document.getElementById('loadingState').style.display = 'none';
+
+  if (data.error) { showError(data.error); return; }
+
+  currentResult = data;
+  document.getElementById('emailInput').value = '';
+  document.getElementById('emailError').style.display = 'none';
+  document.getElementById('emailGate').style.display = 'block';
+}
+
+async function callAPI() {
+  try {
+    const form = new FormData();
+    form.append('file', selectedFile);
+    const res = await fetch(`${API_URL}/analyze`, { method: 'POST', body: form });
+    return await res.json();
+  } catch {
+    return { error: "Impossible de joindre le serveur d'analyse. Vérifiez que le backend est démarré (uvicorn main:app --reload)." };
+  }
+}
+
+async function submitEmail() {
+  const emailInput = document.getElementById('emailInput');
+  const emailError = document.getElementById('emailError');
+  const email = emailInput.value.trim();
+
+  if (!email || !email.includes('@')) {
+    emailError.textContent = 'Veuillez entrer une adresse email valide.';
+    emailError.style.display = 'block';
+    return;
+  }
+  emailError.style.display = 'none';
+
+  // Save lead silently — don't block UX if it fails
+  fetch(`${API_URL}/leads`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  }).catch(() => {});
+
+  document.getElementById('emailGate').style.display = 'none';
+  const note = document.getElementById('demoNote');
+  note.textContent = `Démonstration simulée — ${currentResult.carrier} · ${currentResult.route} · ${currentResult.period}`;
+  note.style.display = 'block';
+  showResult(currentResult);
+}
+
+function showError(msg) {
+  analyzeBtn.style.display = 'block';
+  analyzeBtn.disabled = false;
+  const es = document.getElementById('emptyState');
+  es.style.display = 'flex';
+  es.innerHTML = `
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <p style="font-size:14px;color:#EF4444;max-width:260px;line-height:1.6;">${msg}</p>`;
+}
+
+function showResult(data) {
+  const { score: pct, lines, anomalies_count, summary, summary_type } = data;
+
+  document.getElementById('resultPanel').style.display = 'flex';
+
+  const badge = document.getElementById('scoreBadge');
+  badge.textContent = pct + '%';
+  badge.className = 'score-badge ' + (pct < 15 ? 'score-low' : pct < 30 ? 'score-mid' : 'score-high');
+  document.getElementById('resultSubtitle').textContent = `${anomalies_count} anomalie(s) détectée(s) sur ${lines.length} lignes`;
+
+  const gauge = document.getElementById('gaugeFill');
+  document.getElementById('gaugePct').textContent = pct + '%';
+  gauge.style.background = pct < 15 ? 'var(--success)' : pct < 30 ? 'var(--warn)' : 'var(--danger)';
+  setTimeout(() => { gauge.style.width = pct + '%'; }, 80);
+
+  document.getElementById('linesCount').textContent = lines.length + ' lignes';
+  const list = document.getElementById('linesList');
+  list.innerHTML = '';
+  lines.forEach(l => {
+    const dotClass = l.status === 'ok' ? 'dot-ok' : l.status === 'warn' ? 'dot-warn' : 'dot-err';
+    const vClass   = l.status === 'ok' ? 'v-ok'   : l.status === 'warn' ? 'v-warn'   : 'v-err';
+    list.innerHTML += `
+      <div class="line-row">
+        <div class="line-dot ${dotClass}"></div>
+        <div class="line-info">
+          <div class="line-code">${l.code}</div>
+          <div class="line-desc">${l.desc}</div>
+        </div>
+        <div class="line-right">
+          <div class="line-amount">${l.amount}</div>
+          <div class="line-verdict ${vClass}">${l.verdict}</div>
+        </div>
+      </div>`;
+  });
+
+  const summaryEl = document.getElementById('summaryCard');
+  summaryEl.className = 'summary-card ' + (summary_type === 'err' ? 'sum-err' : 'sum-ok');
+  summaryEl.innerHTML = summary;
+
+  document.getElementById('resultPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function toggleContestation() {
+  const panel = document.getElementById('contestationPanel');
+  const btn   = document.getElementById('contestationBtn');
+  const text  = document.getElementById('contestationText');
+
+  if (panel.style.display === 'block') {
+    panel.style.display = 'none';
+    btn.textContent = 'Email de contestation';
+    return;
+  }
+
+  // Already fetched — just reveal
+  if (text.textContent) {
+    panel.style.display = 'block';
+    btn.textContent = "Masquer l'email";
+    return;
+  }
+
+  const orig = btn.textContent;
+  btn.textContent = 'Génération…';
+  btn.disabled = true;
+
+  try {
+    const res  = await fetch(`${API_URL}/contestation`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(currentResult),
+    });
+    const data = await res.json();
+    text.textContent    = data.email;
+    panel.style.display = 'block';
+    btn.textContent     = "Masquer l'email";
+  } catch {
+    btn.textContent = orig;
+  }
+  btn.disabled = false;
+}
+
+function copyEmail() {
+  const text = document.getElementById('contestationText').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = 'Copié !';
+    setTimeout(() => { btn.textContent = 'Copier'; }, 2000);
+  });
+}
+
+async function downloadReport() {
+  const btn = document.getElementById('reportBtn');
+  const original = btn.textContent;
+  btn.textContent = 'Génération en cours…';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(`${API_URL}/report`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(currentResult),
+    });
+    if (res.ok) {
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `clearfreight-${currentResult.carrier.toLowerCase().replace(/[^a-z0-9]/g, '-')}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  } catch {
+    alert("Erreur lors de la génération du rapport. Vérifiez que le backend est démarré.");
+  }
+
+  btn.textContent = original;
+  btn.disabled = false;
+}
+</script>
+</body>
+</html>
