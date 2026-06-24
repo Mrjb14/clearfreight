@@ -92,36 +92,66 @@ def vary_amounts(scenario: dict) -> dict:
 
 
 # ──────────────────────────────────────────────
-# Phase 4 — Claude API extraction
+# Phase 4 — Claude API extraction + validation
 # ──────────────────────────────────────────────
 
-async def extract_carrier_from_pdf(pdf_bytes: bytes) -> str | None:
-    """Extract carrier name from PDF text using Claude. Returns None on any failure."""
+_ROUTE_RE  = re.compile(r"^[\w\s\-'./]+(→[\w\s\-'./]+)+$")
+_PERIOD_RE = re.compile(r"^(Q[1-4]\s*\d{4}|[A-Za-zéèêàùâôî.]+\.?\s*\d{4})$")
+
+
+def _validated_route(value: str | None) -> str | None:
+    if value and _ROUTE_RE.match(value.strip()):
+        return value.strip()
+    return None
+
+
+def _validated_period(value: str | None) -> str | None:
+    if value and _PERIOD_RE.match(value.strip()):
+        return value.strip()
+    return None
+
+
+async def extract_invoice_fields(pdf_bytes: bytes) -> dict:
+    """Extract carrier, route and period from PDF in one Claude call.
+    Returns dict with None values on any failure."""
+    result = {"carrier": None, "route": None, "period": None}
     if not CLAUDE_ENABLED:
-        return None
+        return result
     try:
         reader = PdfReader(io.BytesIO(pdf_bytes))
         text = "\n".join(page.extract_text() or "" for page in reader.pages[:2])
         if not text.strip():
-            return None
+            return result
 
         client = anthropic.Anthropic()
         msg = client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=50,
+            max_tokens=120,
             messages=[{
                 "role": "user",
                 "content": (
-                    "Extract only the shipping carrier company name from this freight invoice. "
-                    "Reply with ONLY the carrier name (e.g. 'MSC', 'Maersk', 'CMA CGM', 'Hapag-Lloyd'). "
-                    "No explanation, no punctuation.\n\n"
+                    "Extract these 3 fields from the freight invoice. "
+                    "Reply with JSON only, no explanation:\n"
+                    '{"carrier":"...","route":"...","period":"..."}\n\n'
+                    "Rules:\n"
+                    "- carrier: shipping company short name (MSC, Maersk, CMA CGM, Hapag-Lloyd…)\n"
+                    "- route: 'POL City → POD City' (e.g. 'Shanghai → Le Havre')\n"
+                    "- period: B/L date as 'Mmm. YYYY' (e.g. 'Janv. 2026') or quarter 'Q1 2026'\n"
+                    "- Use null if a field is not found\n\n"
                     f"{text[:3000]}"
                 ),
             }],
         )
-        return msg.content[0].text.strip()
+        raw = msg.content[0].text.strip()
+        m = re.search(r"\{.*?\}", raw, re.DOTALL)
+        if m:
+            extracted = json.loads(m.group())
+            result["carrier"] = extracted.get("carrier") or None
+            result["route"]   = _validated_route(extracted.get("route"))
+            result["period"]  = _validated_period(extracted.get("period"))
     except Exception:
-        return None
+        pass
+    return result
 
 
 # ──────────────────────────────────────────────
@@ -304,18 +334,26 @@ async def analyze(file: UploadFile = File(...)):
 
     pdf_bytes = await file.read()
 
-    # Phase 4: Claude extracts carrier from PDF content
+    # Phase 4: extract carrier + route + period from PDF content
+    fields = await extract_invoice_fields(pdf_bytes)
+
     scenario = None
-    carrier = await extract_carrier_from_pdf(pdf_bytes)
-    if carrier:
-        scenario = pick_by_carrier(carrier)
+    if fields["carrier"]:
+        scenario = pick_by_carrier(fields["carrier"])
 
     # Fallback: filename-based selection
     if scenario is None:
         scenario = pick_by_filename(file.filename)
 
-    # Phase 3: Apply ±5% amount variation
+    # Phase 3: apply ±5% amount variation
     result = vary_amounts(scenario)
+
+    # Inject real fields extracted from the PDF
+    if fields["route"]:
+        result["route"] = fields["route"]
+    if fields["period"]:
+        result["period"] = fields["period"]
+
     return JSONResponse(content=result)
 
 
